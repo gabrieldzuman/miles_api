@@ -1,2 +1,2 @@
 # miles_api
-Esta API tem a finalidade de um sistema de milhagem, onde creditamos e debitamos milhas dos respectivos clientes, toda transação ocorre entre Fornecedor > Companhia > Cliente. 
+Esta API tem a finalidade de um sistema de milhagem, onde creditamos e debitamos milhas dos respectivos clientes, toda transação ocorre entre Fornecedor > Companhia > Cliente. Também atribui a parte de cotação, que assim sejam convertidas as milhas para tal fim. Posteriormente consumindo API do front-end e API fornecedor para encaixe total de todas funcionalidades, executando assim transação similar a de uma conta bancária. 
