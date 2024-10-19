@@ -1,180 +1,219 @@
-<?php
-
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\api\Company;
+use App\Models\Api\Company;
 use Illuminate\Http\Request;
-use Exception;
-use App\Http\Controllers\Api\LogAPI;
-use App\Models\V1\LogError;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
+use Exception;
 
 class CompanyController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Display a listing of companies.
      *
-     * @return \Illuminate\Http\Response
+     * @return \Illuminate\Http\JsonResponse
      */
-
-    //funcao para buscar lista de companhias
     public function index()
-    { 
+    {
         try {
-            $companies = Company::get();
-            // $companies = Company::where('client_id', CLIENT_ID)->get();
-            return response()->json(["success" => 1, 'companies' => $companies], 200);
-        } catch (\Exception $e) {
-            return response()->json(["err" => 0, 'message' => $e->getMessage()], 200);
-        }
-    }       
+            $companies = Company::all();
 
-    //função para resgatar token 
+            return response()->json([
+                'success' => true,
+                'companies' => $companies
+            ], 200);
+        } catch (Exception $e) {
+            Log::error('Error fetching companies: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching companies.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Retrieve an access token (dummy example).
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function accessToken()
     {
-		try {
-			// 	$logStatus = 'fail';
-			// 	LogAPI::create([
-			// 		'log_api_user_id' =>CLIENT_ID,
-			// 		'log_api_class' => end($this->className),
-			// 		'log_api_action' => 'searchAll',
-			// 		'log_api_request' => REQUEST_PAYLOAD,
-			// 		'log_api_response' => json_encode($return),
-			// 		'log_api_route' => ROUTE_API,
-			// 		'log_api_status' => $logStatus,
-			// 		'log_api_ip' => ORIGIN_IP
-			// 	]);
-			// 	return $return;
-			// } catch (\Exception $e) {
-            // return response()->json(["err" => 0, 'message' => $e->getMessage()], 200);
+        try {
+            $token = 'sample_token';
 
-            if (empty($allServices)) {
-                DB::rollback();
-                $return = ['sucess' => false, 'message' => 'error(04), resource not available', 'code' => 404];
-                $statusLog = 'fail';
-                LogError::create([
-                    'erro_user_id' => CLIENT_ID,
-                    'erro_ip' => ORIGIN_IP,
-                    'erro_message' => $return['message'],
-                    'erro_code' => $return['code'],
-                    'erro_file' => __FILE__,
-                    'erro_line' => __LINE__,
-                    'erro_route' => ROUTE_API,
-                ]);
-            } else {
-                $return = ['sucess' => true, 'model' => $allServices];
-                $statusLog = 'sucess';
-            }
-            LogAPI::create([
-                'log_api_user_id' =>CLIENT_ID,
-                'log_api_class' => end($this->className),
-                'log_api_action' => 'createPurchase',
-                'log_api_request' => REQUEST_PAYLOAD,
-                'log_api_response' => json_encode($return),
-                'log_api_route' => ROUTE_API,
-                'log_api_status' => $statusLog,
-                'log_api_ip' => ORIGIN_IP
-            ]);
-            return $return;
-        } catch (\Exception $e) {
-        return $this->handlerException($e);
-    }
-}
+            return response()->json([
+                'success' => true,
+                'token' => $token
+            ], 200);
+        } catch (Exception $e) {
+            Log::error('Error fetching access token: ' . $e->getMessage());
 
-    //funcao para buscar uma companhia especifica
-    public function getCompany($companyId)
-    {   
-        try {            
-            // $companies = Company::where('client_id', CLIENT_ID)->first();
-            $companies = Company::where('id', $companyId)->first();
-            if($companies!=null){
-                return response()->json(["success" => 1, 'companies' => $companies], 200);
-            } else {
-                return response()->json(["err" => 0, 'message'=>'Companhia não encontrada'], 200);
-            }
-        } catch (\Exception $e) {
-            return response()->json(["err" => 0, 'message' => $e->getMessage()], 200);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching access token.'
+            ], 500);
         }
-    }       
-
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \App\Http\Requests\StoreCompanyRequest $request
-     * @return \Illuminate\Http\Response
-     */
-
-    //funcao para gravar companhia
-    public function store(Request $request)
-    {     
-        try{ 
-            // $requestData['client_id'] = CLIENT_ID;
-            $requestData = $request->all();
-            $companies = Company::Create($requestData); 
-            return response()->json(["success" => 1, 'message'=>'Companhia gravada', 'company' => $companies], 200);        
-        } catch(Exception $e){ 
-            return response()->json(["err" => 0, 'message' => $e->getMessage()], 200);
-        }    
     }
 
     /**
-     * Update the specified resource in storage.
+     * Display the specified company by ID.
      *
-     * @param  \App\Http\Requests\UpdateCompanyRequest $request
-     * @param  \App\Models\api\Company $company
-     * @return \Illuminate\Http\Response
+     * @param int $companyId
+     * @return \Illuminate\Http\JsonResponse
      */
-     
-    //funcao para editar companhia
-    public function update(Request $request, $companyId)
+    public function show($companyId)
     {
         try {
-            // $company = Company::where('client_id', CLIENT_ID)->first();
-            $company = Company::where('id', $companyId)->first();
-            if($company!=null){
-                $response = $company->update($request->all());
-                if($response == true){
-                    $company = $this->getCompany($companyId);
-                    $company = (json_decode($company->getContent())->companies);
-                    return response()->json(["success" => 1 , 'message'=>'Companhia alterada com sucesso', 'company' => $company], 200);
-                } else {
-                    return response()->json(["err" => 0, 'message'=>'Erro ao alterar companhia'], 200);
-                }
-            } else {
-                return response()->json(["err" => 0, 'message'=>'Companhia não encontrada'], 200);
+            $company = Company::find($companyId);
+
+            if (!$company) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Company not found.'
+                ], 404);
             }
-        } catch (\Exception $e) {
-            return response()->json(["err" => 0, 'message' => $e->getMessage()], 200);
+
+            return response()->json([
+                'success' => true,
+                'company' => $company
+            ], 200);
+        } catch (Exception $e) {
+            Log::error('Error fetching company: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching company.'
+            ], 500);
         }
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Store a newly created company.
      *
-     * @param  \App\Models\api\Company $company
-     * @return \Illuminate\Http\Response
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
      */
+    public function store(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'address' => 'nullable|string|max:255',
+            'email' => 'nullable|email|max:255',
+        ]);
 
-    //funcao para excluir companhia
-    public function destroy($companyId)
-    {   
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        DB::beginTransaction();
+
         try {
-            // $company = Company::where('client_id', CLIENT_ID)->first();
-            $company = Company::where('id', $companyId)->first();
-            if($company!=null){
-                $company->active = 0; 
-                $company->save();
-                if($company == true){
-                    return response()->json(["success" => 1, 'message'=>'Companhia desativada com sucesso'], 200);
-                } else {
-                    return response()->json(["err" => 0, 'message'=>'Erro ao desativar companhia'], 200);
-                }
-            } else {
-                return response()->json(["err" => 0, 'message'=>'Companhia não encontrada'], 200);
+            $company = Company::create($request->all());
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Company created successfully.',
+                'company' => $company
+            ], 201);
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('Error creating company: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error creating company.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Update the specified company.
+     *
+     * @param Request $request
+     * @param int $companyId
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function update(Request $request, $companyId)
+    {
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'address' => 'nullable|string|max:255',
+            'email' => 'nullable|email|max:255',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        try {
+            $company = Company::find($companyId);
+
+            if (!$company) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Company not found.'
+                ], 404);
             }
-        } catch (\Exception $e) {
-            return response()->json(["err" => 0, 'message' => $e->getMessage()], 200);
+
+            $company->update($request->all());
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Company updated successfully.',
+                'company' => $company
+            ], 200);
+        } catch (Exception $e) {
+            Log::error('Error updating company: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error updating company.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Soft delete the specified company.
+     *
+     * @param int $companyId
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function destroy($companyId)
+    {
+        try {
+            $company = Company::find($companyId);
+
+            if (!$company) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Company not found.'
+                ], 404);
+            }
+
+            $company->update(['active' => false]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Company deactivated successfully.'
+            ], 200);
+        } catch (Exception $e) {
+            Log::error('Error deactivating company: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error deactivating company.'
+            ], 500);
         }
     }
 }
