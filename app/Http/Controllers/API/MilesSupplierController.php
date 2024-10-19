@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Http\Controllers\Api;
- 
+
 use App\Http\Controllers\Controller;
 use App\Models\api\MilesSupplier;
 use Illuminate\Http\Request;
@@ -10,117 +10,105 @@ use Exception;
 class MilesSupplierController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Exibe uma lista de fornecedores.
      *
      * @return \Illuminate\Http\Response
      */
-
-    //funcao para buscar lista de fornecedores
     public function index()
     {
-        // $milesSuppliers = MilesSupplier::where('client_id', CLIENT_ID)->get();
-        $milesSuppliers = MilesSupplier::all();
-        return response()->json(["success" => 1, 'milesSuppliers' => $milesSuppliers], 200);
+        try {
+            $milesSuppliers = MilesSupplier::all();
+            return response()->json(["success" => true, 'milesSuppliers' => $milesSuppliers], 200);
+        } catch (Exception $e) {
+            return response()->json(["success" => false, 'message' => $e->getMessage()], 500);
+        }
     }
 
-    //função para resgatar token 
+    /**
+     * Função para resgatar o token (Exemplo).
+     */
     public function accessToken()
     {
-        dd('milesSupplier');
         return $this->hasMany('App\OauthAccessToken');
-        
-        // Auth::user()->token();
     }
 
-    //funcao para buscar um fornecedor especifico 
+    /**
+     * Retorna um fornecedor específico pelo ID.
+     *
+     * @param int $milesSupplierId
+     * @return \Illuminate\Http\Response
+     */
     public function getMilesSupplier($milesSupplierId)
     {
         try {
-            // $milesSuppliers = MilesSupplier::where('client_id', CLIENT_ID)->first();
-            $milesSuppliers = MilesSupplier::where('id', $milesSupplierId)->first();
-            if($milesSuppliers!=null){
-                return response()->json(["success" => 1, 'milesSuppliers' => $milesSuppliers], 200);
+            $milesSupplier = MilesSupplier::find($milesSupplierId);
+            if ($milesSupplier) {
+                return response()->json(["success" => true, 'milesSupplier' => $milesSupplier], 200);
             } else {
-                return response()->json(["err" => 0, 'message'=>'Fornecedor não encontrado'], 200);
+                return response()->json(["success" => false, 'message' => 'Fornecedor não encontrado'], 404);
             }
-        } catch (\Exception $e) {
-            return response()->json(["err" => 0, 'message' => $e->getMessage()], 200);
+        } catch (Exception $e) {
+            return response()->json(["success" => false, 'message' => $e->getMessage()], 500);
         }
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Armazena um novo fornecedor.
      *
-     * @param  \App\Http\Requests\StoreMilesSupplierRequest $request
+     * @param \Illuminate\Http\Request $request
      * @return \Illuminate\Http\Response
      */
-
-    //funcao para gravar fornecedor 
     public function store(Request $request)
     {
-        try{ 
-            // $requestData['client_id'] = CLIENT_ID;
-            $milesSuppliers = MilesSupplier::Create($request->all()); 
-        return response()->json(["success" => 1, 'message'=>'Fornecedor gravado', "milesSupplier" => $milesSuppliers], 200);
-        } catch(Exception $e){ 
-            return response()->json(["err" => 0, 'message' => $e->getMessage()], 200); 
-        }    
+        try {
+            $milesSupplier = MilesSupplier::create($request->all());
+            return response()->json(["success" => true, 'message' => 'Fornecedor gravado com sucesso', "milesSupplier" => $milesSupplier], 201);
+        } catch (Exception $e) {
+            return response()->json(["success" => false, 'message' => $e->getMessage()], 500);
+        }
     }
 
     /**
-     * Update the specified resource in storage.
+     * Atualiza as informações de um fornecedor.
      *
-     * @param  \App\Http\Requests\UpdateMilesSupplierRequest $request
-     * @param  \App\Models\api\MilesSupplier $milesSupplier
+     * @param \Illuminate\Http\Request $request
+     * @param int $milesSupplierId
      * @return \Illuminate\Http\Response
-     */ 
-
-    //funcao para editar fornecedor
+     */
     public function update(Request $request, $milesSupplierId)
     {
         try {
-            // $milesSupplier = MilesSupplier::where('client_id', CLIENT_ID)->first();
-            $milesSupplier = MilesSupplier::where('id', $milesSupplierId)->first();
-            if($milesSupplier!=null){
-                $response = $milesSupplier->update($request->all());
-                if($response == true){
-                    return response()->json(['success' => 1, 'message'=>'Fornecedor alterado com sucesso', 'milesSupplier' => $milesSupplier], 200);
-                } else {
-                    return response()->json(["err" => 0, 'message'=>'Erro ao alterar fornecedor'], 200);
-                }
+            $milesSupplier = MilesSupplier::find($milesSupplierId);
+            if ($milesSupplier) {
+                $milesSupplier->update($request->all());
+                return response()->json(["success" => true, 'message' => 'Fornecedor alterado com sucesso', 'milesSupplier' => $milesSupplier], 200);
             } else {
-                return response()->json(["err" => 0, 'message'=>'Fornecedor não encontrado'], 200);
+                return response()->json(["success" => false, 'message' => 'Fornecedor não encontrado'], 404);
             }
-        } catch (\Exception $e) {
-            return response()->json(["err" => 0, 'message' => $e->getMessage()], 200);
+        } catch (Exception $e) {
+            return response()->json(["success" => false, 'message' => $e->getMessage()], 500);
         }
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Desativa um fornecedor.
      *
-     * @param  \App\Models\api\MilesSupplier $milesSupplier
+     * @param int $milesSupplierId
      * @return \Illuminate\Http\Response
      */
-    
-    //funcao para excluir fornecedor
     public function destroy($milesSupplierId)
-    {   
+    {
         try {
-            // $milesSupplier = MilesSupplier::where('client_id', CLIENT_ID)->first();
-            $milesSupplier = MilesSupplier::where('id', $milesSupplierId)->first();
-            if($milesSupplier!=null){
-                $milesSupplier->active = false; $milesSupplier->save();
-                if($milesSupplier == true){
-                    return response()->json(["sucess" => 1, 'message'=>'Fornecedor desativado com sucesso'], 200);
-                } else {
-                    return response()->json(["err" => 0, 'message'=>'Erro ao desativar fornecedor'], 200);
-                }
+            $milesSupplier = MilesSupplier::find($milesSupplierId);
+            if ($milesSupplier) {
+                $milesSupplier->active = false;
+                $milesSupplier->save();
+                return response()->json(["success" => true, 'message' => 'Fornecedor desativado com sucesso'], 200);
             } else {
-                return response()->json(["err" => 0, 'message'=>'Fornecedor não encontrado'], 200);
+                return response()->json(["success" => false, 'message' => 'Fornecedor não encontrado'], 404);
             }
-        } catch (\Exception $e) {
-            return response()->json(["err" => 0, 'message' => $e->getMessage()], 200);
+        } catch (Exception $e) {
+            return response()->json(["success" => false, 'message' => $e->getMessage()], 500);
         }
     }
 }
