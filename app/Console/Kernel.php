@@ -13,7 +13,7 @@ class Kernel extends ConsoleKernel
      * @param  \Illuminate\Console\Scheduling\Schedule  $schedule
      * @return void
      */
-    protected function schedule(Schedule $schedule)
+    protected function schedule(Schedule $schedule): void
     {
         // $schedule->command('inspire')->hourly();
     }
@@ -23,10 +23,16 @@ class Kernel extends ConsoleKernel
      *
      * @return void
      */
-    protected function commands()
+    protected function commands(): void
     {
-        $this->load(__DIR__.'/Commands');
+        $commandsPath = __DIR__.'/Commands';
+        if (is_dir($commandsPath)) {
+            $this->load($commandsPath);
+        }
 
-        require base_path('routes/console.php');
+        $consoleRoutes = base_path('routes/console.php');
+        if (file_exists($consoleRoutes)) {
+            require $consoleRoutes;
+        }
     }
 }
