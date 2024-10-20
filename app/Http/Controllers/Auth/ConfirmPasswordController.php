@@ -5,36 +5,58 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Providers\RouteServiceProvider;
 use Illuminate\Foundation\Auth\ConfirmsPasswords;
+use Illuminate\Contracts\Auth\Guard;
 
 class ConfirmPasswordController extends Controller
 {
-    /*
-    |--------------------------------------------------------------------------
-    | Confirm Password Controller
-    |--------------------------------------------------------------------------
-    |
-    | This controller is responsible for handling password confirmations and
-    | uses a simple trait to include the behavior. You're free to explore
-    | this trait and override any functions that require customization.
-    |
-    */
-
     use ConfirmsPasswords;
 
     /**
-     * Where to redirect users when the intended url fails.
+     * Where to redirect users when the intended URL fails.
      *
      * @var string
      */
-    protected $redirectTo = RouteServiceProvider::HOME;
+    protected string $redirectTo;
+
+    /**
+     * The auth guard implementation.
+     *
+     * @var Guard
+     */
+    protected Guard $auth;
 
     /**
      * Create a new controller instance.
      *
+     * @param Guard $auth
+     * @param string $redirectTo
      * @return void
      */
-    public function __construct()
+    public function __construct(Guard $auth, string $redirectTo = RouteServiceProvider::HOME)
     {
         $this->middleware('auth');
+        $this->auth = $auth;
+        $this->redirectTo = $redirectTo;
+    }
+
+    /**
+     * Redirect user if password confirmation fails.
+     *
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    protected function redirectToFailedConfirmation()
+    {
+        return redirect($this->redirectTo)
+            ->with('error', 'Password confirmation failed. Please try again.');
+    }
+
+    /**
+     * Customize any other logic for password confirmation here, if necessary.
+     *
+     * @return \Illuminate\View\View
+     */
+    public function showConfirmForm()
+    {
+        return view('auth.confirm-password');
     }
 }
