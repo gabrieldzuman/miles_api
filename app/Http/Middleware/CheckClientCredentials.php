@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Http\Middleware;
+
 use Illuminate\Auth\AuthenticationException;
 use Laravel\Passport\TokenRepository;
 use Laravel\Passport\Http\Middleware\CheckClientCredentials as PassportClientCredentials;
@@ -13,14 +14,20 @@ use Illuminate\Support\Facades\Route;
 // use App\Traits\GetIp;
 
 class CheckClientCredentials extends PassportClientCredentials
-
 {
     // use GetIp;
 
+    /**
+     * Constructor to initialize the ResourceServer and TokenRepository.
+     *
+     * @param \League\OAuth2\Server\ResourceServer $server
+     * @param \Laravel\Passport\TokenRepository $repository
+     */
     public function __construct(ResourceServer $server, TokenRepository $repository)
     {
         parent::__construct($server, $repository);
     }
+
     /**
      * Handle an incoming request.
      *
@@ -31,8 +38,7 @@ class CheckClientCredentials extends PassportClientCredentials
      * @throws AuthenticationException
      * @throws \Laravel\Passport\Exceptions\MissingScopeException
      */
-
-    public function handle($request, Closure $next, ...$scopes)
+    public function handle(\Illuminate\Http\Request $request, Closure $next, ...$scopes): mixed
     {
         $psr = (new PsrHttpFactory(
             new Psr17Factory,
@@ -43,18 +49,14 @@ class CheckClientCredentials extends PassportClientCredentials
 
         try {
             $psr = $this->server->validateAuthenticatedRequest($psr);
-            // $request->request->set('client_id', $psr->getAttribute('oauth_client_id'));
-            define('CLIENT_ID', $psr->getAttribute('oauth_client_id'));
-            define('ROUTE_API', Route::currentRouteName());
-            define('REQUEST_PAYLOAD', json_encode($request->toArray()));
-            // define('ORIGIN_IP', $this->getIP());
-			//$request->get('client_id');
+            $request->attributes->set('client_id', $psr->getAttribute('oauth_client_id'));
+            $request->attributes->set('route_name', Route::currentRouteName());
+            $request->attributes->set('request_payload', json_encode($request->all()));
         } catch (OAuthServerException $e) {
+            logger()->error('OAuth error: ' . $e->getMessage());
             throw new AuthenticationException;
         }
-        
         $this->validate($psr, $scopes);
         return $next($request);
     }
 }
-
