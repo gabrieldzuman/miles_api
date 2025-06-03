@@ -7,25 +7,21 @@ use Illuminate\Foundation\Http\FormRequest;
 class StoreMilesConversionRequest extends FormRequest
 {
     /**
-     * Determine if the user is authorized to make this request.
-     *
-     * @return bool
+     * Autoriza a requisição.
      */
-    public function authorize()
+    public function authorize(): bool
     {
         return true;
     }
 
     /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, mixed>
+     * Regras de validação para a requisição.
      */
-    public function rules()
+    public function rules(): array
     {
         return [
-            'title' => ['required', 'max:70'],
-            'description'  => ['required']
+            'title' => 'required|max:70',
+            'description' => 'required',
         ];
     }
 }
