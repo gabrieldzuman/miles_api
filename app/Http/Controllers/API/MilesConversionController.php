@@ -11,134 +11,123 @@ class MilesConversionController extends Controller
 {
     /**
      * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
      */
     public function index()
     {
         try {
             $milesConversions = MilesConversion::all();
-            return response()->json([
-                "success" => true, 
-                "milesConversions" => $milesConversions
-            ], 200);
+            return $this->successResponse(['milesConversions' => $milesConversions]);
         } catch (Exception $e) {
-            return response()->json([
-                "success" => false, 
-                "message" => $e->getMessage()
-            ], 500);
+            return $this->errorResponse($e);
         }
     }
 
     /**
      * Retrieve a specific miles conversion record.
-     *
-     * @param int $milesQuotationId
-     * @return \Illuminate\Http\Response
      */
     public function getMilesQuotation($milesQuotationId)
     {
         try {
             $milesConversion = MilesConversion::find($milesQuotationId);
-            if ($milesConversion) {
-                return response()->json([
-                    "success" => true, 
-                    "quotation" => $milesConversion
-                ], 200);
+            if (!$milesConversion) {
+                return $this->notFoundResponse('Cotação não encontrada');
             }
-            return response()->json([
-                "success" => false, 
-                "message" => "Cotação não encontrada"
-            ], 404);
+            return $this->successResponse(['quotation' => $milesConversion]);
         } catch (Exception $e) {
-            return response()->json([
-                "success" => false, 
-                "message" => $e->getMessage()
-            ], 500);
+            return $this->errorResponse($e);
         }
     }
 
     /**
      * Store a newly created miles conversion.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
      */
     public function store(Request $request)
     {
         try {
             $milesConversion = MilesConversion::create($request->all());
-            return response()->json([
-                "success" => true, 
-                "message" => "Conversão gravada com sucesso", 
-                "milesConversion" => $milesConversion
-            ], 201);
+            return $this->successResponse(
+                ['milesConversion' => $milesConversion],
+                'Conversão gravada com sucesso',
+                201
+            );
         } catch (Exception $e) {
-            return response()->json([
-                "success" => false, 
-                "message" => $e->getMessage()
-            ], 500);
+            return $this->errorResponse($e);
         }
     }
 
     /**
      * Update a specific miles conversion.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  int $milesConversionId
-     * @return \Illuminate\Http\Response
      */
     public function update(Request $request, $milesConversionId)
     {
         try {
             $milesConversion = MilesConversion::find($milesConversionId);
-            if ($milesConversion) {
-                $milesConversion->update($request->all());
-                return response()->json([
-                    "success" => true, 
-                    "message" => "Conversão atualizada com sucesso", 
-                    "milesConversion" => $milesConversion
-                ], 200);
+            if (!$milesConversion) {
+                return $this->notFoundResponse('Conversão não encontrada');
             }
-            return response()->json([
-                "success" => false, 
-                "message" => "Conversão não encontrada"
-            ], 404);
+
+            $milesConversion->update($request->all());
+
+            return $this->successResponse(
+                ['milesConversion' => $milesConversion],
+                'Conversão atualizada com sucesso'
+            );
         } catch (Exception $e) {
-            return response()->json([
-                "success" => false, 
-                "message" => $e->getMessage()
-            ], 500);
+            return $this->errorResponse($e);
         }
     }
 
     /**
      * Deactivate a specific miles conversion.
-     *
-     * @param  int $milesConversionId
-     * @return \Illuminate\Http\Response
      */
     public function destroy($milesConversionId)
     {
         try {
             $milesConversion = MilesConversion::find($milesConversionId);
-            if ($milesConversion) {
-                $milesConversion->active = 0;
-                $milesConversion->save();
-                return response()->json([
-                    "success" => true, 
-                    "message" => "Conversão desativada com sucesso"
-                ], 200);
+            if (!$milesConversion) {
+                return $this->notFoundResponse('Conversão não encontrada');
             }
-            return response()->json([
-                "success" => false, 
-                "message" => "Conversão não encontrada"
-            ], 404);
+
+            $milesConversion->active = 0;
+            $milesConversion->save();
+
+            return $this->successResponse([], 'Conversão desativada com sucesso');
         } catch (Exception $e) {
-            return response()->json([
-                "success" => false, 
-                "message" => $e->getMessage()
-            ], 500);
+            return $this->errorResponse($e);
         }
+    }
+
+    /**
+     * Return a successful JSON response.
+     */
+    private function successResponse(array $data = [], string $message = '', int $statusCode = 200)
+    {
+        $response = ['success' => true];
+        if ($message) {
+            $response['message'] = $message;
+        }
+        return response()->json(array_merge($response, $data), $statusCode);
+    }
+
+    /**
+     * Return a not found JSON response.
+     */
+    private function notFoundResponse(string $message)
+    {
+        return response()->json([
+            'success' => false,
+            'message' => $message,
+        ], 404);
+    }
+
+    /**
+     * Return an error JSON response.
+     */
+    private function errorResponse(Exception $e)
+    {
+        return response()->json([
+            'success' => false,
+            'message' => $e->getMessage(),
+        ], 500);
     }
 }
