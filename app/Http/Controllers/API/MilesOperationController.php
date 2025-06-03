@@ -14,25 +14,24 @@ class MilesOperationController extends Controller
     public function index()
     {
         $milesOperations = MilesOperation::all();
-        return response()->json(["success" => 1, 'milesOperations' => $milesOperations], 200);
+        return $this->successResponse(['milesOperations' => $milesOperations]);
     }
 
     public function getMilesOperation($milesOperationId)
     {
         try {
             $milesOperation = MilesOperation::find($milesOperationId);
-            if ($milesOperation) {
-                return response()->json(["success" => 1, 'milesOperation' => $milesOperation], 200);
-            } else {
-                return response()->json(["success" => 0, 'message' => 'Operação não encontrada'], 404);
+            if (!$milesOperation) {
+                return $this->notFoundResponse('Operação não encontrada');
             }
+            return $this->successResponse(['milesOperation' => $milesOperation]);
         } catch (\Exception $e) {
-            return response()->json(["success" => 0, 'message' => $e->getMessage()], 500);
+            return $this->errorResponse($e);
         }
     }
 
     public function milesOperation(Request $request)
-    {   
+    {
         $request->validate([
             'miles_account_id' => 'required|exists:miles_accounts,id',
             'value' => 'required|numeric|min:0',
@@ -46,7 +45,7 @@ class MilesOperationController extends Controller
             $milesAccount->miles_accounts_balance -= $request->value;
             $milesAccount->save();
 
-            $milesOperation = new MilesOperation;
+            $milesOperation = new MilesOperation();
             $milesOperation->miles_operation_amount = $request->value;
             $milesOperation->miles_operation_type = 'debito';
             $milesOperation->miles_account_id = $milesAccount->id;
@@ -55,12 +54,16 @@ class MilesOperationController extends Controller
 
             DB::commit();
 
-            return response()->json(["success" => 1, 'message' => 'Resgate realizado com sucesso'], 200);
+            return $this->successResponse([], 'Resgate realizado com sucesso');
         } catch (ValidationException $e) {
-            return response()->json(["success" => 0, 'message' => 'Erro de validação', 'errors' => $e->errors()], 422);
+            return response()->json([
+                "success" => false,
+                'message' => 'Erro de validação',
+                'errors' => $e->errors()
+            ], 422);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(["success" => 0, 'message' => $e->getMessage()], 500);
+            return $this->errorResponse($e);
         }
     }
 
@@ -69,14 +72,18 @@ class MilesOperationController extends Controller
         try {
             $milesOperation = MilesOperation::find($milesOperationId);
 
-            if ($milesOperation) {
-                $milesOperation->update($request->all());
-                return response()->json(["success" => 1, 'message' => 'Operação atualizada com sucesso', 'milesOperation' => $milesOperation], 200);
-            } else {
-                return response()->json(["success" => 0, 'message' => 'Operação não encontrada'], 404);
+            if (!$milesOperation) {
+                return $this->notFoundResponse('Operação não encontrada');
             }
+
+            $milesOperation->update($request->all());
+
+            return $this->successResponse(
+                ['milesOperation' => $milesOperation],
+                'Operação atualizada com sucesso'
+            );
         } catch (\Exception $e) {
-            return response()->json(["success" => 0, 'message' => $e->getMessage()], 500);
+            return $this->errorResponse($e);
         }
     }
 
@@ -85,15 +92,50 @@ class MilesOperationController extends Controller
         try {
             $milesOperation = MilesOperation::find($milesOperationId);
 
-            if ($milesOperation) {
-                $milesOperation->active = 0;
-                $milesOperation->save();
-                return response()->json(["success" => 1, 'message' => 'Operação desativada com sucesso'], 200);
-            } else {
-                return response()->json(["success" => 0, 'message' => 'Operação não encontrada'], 404);
+            if (!$milesOperation) {
+                return $this->notFoundResponse('Operação não encontrada');
             }
+
+            $milesOperation->active = 0;
+            $milesOperation->save();
+
+            return $this->successResponse([], 'Operação desativada com sucesso');
         } catch (\Exception $e) {
-            return response()->json(["success" => 0, 'message' => $e->getMessage()], 500);
+            return $this->errorResponse($e);
         }
+    }
+
+    /**
+     * Return a successful JSON response.
+     */
+    private function successResponse(array $data = [], string $message = '', int $statusCode = 200)
+    {
+        $response = ['success' => true];
+        if ($message) {
+            $response['message'] = $message;
+        }
+        return response()->json(array_merge($response, $data), $statusCode);
+    }
+
+    /**
+     * Return a not found JSON response.
+     */
+    private function notFoundResponse(string $message)
+    {
+        return response()->json([
+            'success' => false,
+            'message' => $message,
+        ], 404);
+    }
+
+    /**
+     * Return an error JSON response.
+     */
+    private function errorResponse(\Exception $e)
+    {
+        return response()->json([
+            'success' => false,
+            'message' => $e->getMessage(),
+        ], 500);
     }
 }
