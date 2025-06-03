@@ -14,8 +14,6 @@ class CompanyController extends Controller
 {
     /**
      * Display a listing of companies.
-     *
-     * @return \Illuminate\Http\JsonResponse
      */
     public function index()
     {
@@ -25,21 +23,16 @@ class CompanyController extends Controller
             return response()->json([
                 'success' => true,
                 'companies' => $companies
-            ], 200);
+            ]);
         } catch (Exception $e) {
-            Log::error('Error fetching companies: ' . $e->getMessage());
+            Log::error("Error fetching companies: {$e->getMessage()}");
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Error fetching companies.'
-            ], 500);
+            return $this->errorResponse('Error fetching companies.');
         }
     }
 
     /**
      * Retrieve an access token (dummy example).
-     *
-     * @return \Illuminate\Http\JsonResponse
      */
     public function accessToken()
     {
@@ -49,173 +42,162 @@ class CompanyController extends Controller
             return response()->json([
                 'success' => true,
                 'token' => $token
-            ], 200);
+            ]);
         } catch (Exception $e) {
-            Log::error('Error fetching access token: ' . $e->getMessage());
+            Log::error("Error fetching access token: {$e->getMessage()}");
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Error fetching access token.'
-            ], 500);
+            return $this->errorResponse('Error fetching access token.');
         }
     }
 
     /**
      * Display the specified company by ID.
-     *
-     * @param int $companyId
-     * @return \Illuminate\Http\JsonResponse
      */
-    public function show($companyId)
+    public function show(int $companyId)
     {
-        try {
-            $company = Company::find($companyId);
-
-            if (!$company) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Company not found.'
-                ], 404);
-            }
-
-            return response()->json([
-                'success' => true,
-                'company' => $company
-            ], 200);
-        } catch (Exception $e) {
-            Log::error('Error fetching company: ' . $e->getMessage());
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Error fetching company.'
-            ], 500);
+        $company = $this->findCompany($companyId);
+        if (!$company) {
+            return $this->notFoundResponse();
         }
+
+        return response()->json([
+            'success' => true,
+            'company' => $company,
+        ]);
     }
 
     /**
      * Store a newly created company.
-     *
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
      */
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'address' => 'nullable|string|max:255',
-            'email' => 'nullable|email|max:255',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors()
-            ], 422);
+        $validation = $this->validateCompany($request->all());
+        if ($validation->fails()) {
+            return $this->validationErrorResponse($validation->errors());
         }
 
         DB::beginTransaction();
-
         try {
-            $company = Company::create($request->all());
-
+            $company = Company::create($request->only(['name', 'address', 'email']));
             DB::commit();
 
             return response()->json([
                 'success' => true,
                 'message' => 'Company created successfully.',
-                'company' => $company
+                'company' => $company,
             ], 201);
         } catch (Exception $e) {
             DB::rollBack();
-            Log::error('Error creating company: ' . $e->getMessage());
+            Log::error("Error creating company: {$e->getMessage()}");
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Error creating company.'
-            ], 500);
+            return $this->errorResponse('Error creating company.');
         }
     }
 
     /**
      * Update the specified company.
-     *
-     * @param Request $request
-     * @param int $companyId
-     * @return \Illuminate\Http\JsonResponse
      */
-    public function update(Request $request, $companyId)
+    public function update(Request $request, int $companyId)
     {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'address' => 'nullable|string|max:255',
-            'email' => 'nullable|email|max:255',
-        ]);
+        $validation = $this->validateCompany($request->all());
+        if ($validation->fails()) {
+            return $this->validationErrorResponse($validation->errors());
+        }
 
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors()
-            ], 422);
+        $company = $this->findCompany($companyId);
+        if (!$company) {
+            return $this->notFoundResponse();
         }
 
         try {
-            $company = Company::find($companyId);
-
-            if (!$company) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Company not found.'
-                ], 404);
-            }
-
-            $company->update($request->all());
+            $company->update($request->only(['name', 'address', 'email']));
 
             return response()->json([
                 'success' => true,
                 'message' => 'Company updated successfully.',
-                'company' => $company
-            ], 200);
+                'company' => $company,
+            ]);
         } catch (Exception $e) {
-            Log::error('Error updating company: ' . $e->getMessage());
+            Log::error("Error updating company: {$e->getMessage()}");
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Error updating company.'
-            ], 500);
+            return $this->errorResponse('Error updating company.');
         }
     }
 
     /**
-     * Soft delete the specified company.
-     *
-     * @param int $companyId
-     * @return \Illuminate\Http\JsonResponse
+     * Soft delete (deactivate) the specified company.
      */
-    public function destroy($companyId)
+    public function destroy(int $companyId)
     {
+        $company = $this->findCompany($companyId);
+        if (!$company) {
+            return $this->notFoundResponse();
+        }
+
         try {
-            $company = Company::find($companyId);
-
-            if (!$company) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Company not found.'
-                ], 404);
-            }
-
             $company->update(['active' => false]);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Company deactivated successfully.'
-            ], 200);
+                'message' => 'Company deactivated successfully.',
+            ]);
         } catch (Exception $e) {
-            Log::error('Error deactivating company: ' . $e->getMessage());
+            Log::error("Error deactivating company: {$e->getMessage()}");
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Error deactivating company.'
-            ], 500);
+            return $this->errorResponse('Error deactivating company.');
         }
+    }
+
+    /**
+     * Validate company data.
+     */
+    protected function validateCompany(array $data)
+    {
+        return Validator::make($data, [
+            'name' => 'required|string|max:255',
+            'address' => 'nullable|string|max:255',
+            'email' => 'nullable|email|max:255',
+        ]);
+    }
+
+    /**
+     * Find a company by ID.
+     */
+    protected function findCompany(int $companyId): ?Company
+    {
+        return Company::find($companyId);
+    }
+
+    /**
+     * Return a not found response.
+     */
+    protected function notFoundResponse()
+    {
+        return response()->json([
+            'success' => false,
+            'message' => 'Company not found.'
+        ], 404);
+    }
+
+    /**
+     * Return a validation error response.
+     */
+    protected function validationErrorResponse($errors)
+    {
+        return response()->json([
+            'success' => false,
+            'errors' => $errors
+        ], 422);
+    }
+
+    /**
+     * Return a generic error response.
+     */
+    protected function errorResponse(string $message)
+    {
+        return response()->json([
+            'success' => false,
+            'message' => $message
+        ], 500);
     }
 }
